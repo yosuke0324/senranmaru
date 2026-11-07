@@ -1,0 +1,13 @@
+
+{
+  "expo": {
+    "name": "戦乱丸",
+    "slug": "senranmaru",
+    "version": "0.1.0",
+    "orientation": "landscape",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": false
+    }
+  }
+}
