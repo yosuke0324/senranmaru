@@ -19,6 +19,81 @@ export default function App() {
   const [effects, setEffects] = useState(true);
   const [mode, setMode] = useState('ソロ');
 
+  // Ver.0.4 ソロ対戦
+  const [playerHp, setPlayerHp] = useState(100);
+  const [enemyHp, setEnemyHp] = useState(100);
+  const [turn, setTurn] = useState(1);
+  const [battleOver, setBattleOver] = useState(false);
+  const [battleMessage, setBattleMessage] = useState(
+    '敵武将が現れた！'
+  );
+
+  const startBattle = () => {
+    setPlayerHp(100);
+    setEnemyHp(100);
+    setTurn(1);
+    setBattleOver(false);
+    setBattleMessage('敵武将が現れた！ 行動を選ぼう。');
+    setPage('battle');
+  };
+
+  const battleAction = action => {
+    if (battleOver) return;
+
+    let nextPlayerHp = playerHp;
+    let nextEnemyHp = enemyHp;
+    let message = '';
+
+    if (action === 'attack') {
+      const damage = 15 + Math.floor(Math.random() * 11);
+      nextEnemyHp = Math.max(0, enemyHp - damage);
+      message = `攻撃！ 敵に${damage}ダメージ！`;
+    }
+
+    if (action === 'guard') {
+      message = '防御の構え！ 敵の攻撃を軽減！';
+    }
+
+    if (action === 'heal') {
+      const heal = 12 + Math.floor(Math.random() * 9);
+      const actualHeal = Math.min(100 - playerHp, heal);
+      nextPlayerHp = playerHp + actualHeal;
+      message = `体力を${actualHeal}回復！`;
+    }
+
+    setEnemyHp(nextEnemyHp);
+
+    if (nextEnemyHp <= 0) {
+      setBattleMessage('🏆 勝利！ 敵武将を倒した！');
+      setBattleOver(true);
+      return;
+    }
+
+    const baseDamage = 10 + Math.floor(Math.random() * 9);
+    const enemyDamage =
+      action === 'guard'
+        ? Math.max(1, baseDamage - 10)
+        : baseDamage;
+
+    nextPlayerHp = Math.max(
+      0,
+      nextPlayerHp - enemyDamage
+    );
+
+    setPlayerHp(nextPlayerHp);
+
+    if (nextPlayerHp <= 0) {
+      setBattleMessage('敗北… 敵武将に倒された。');
+      setBattleOver(true);
+      return;
+    }
+
+    setBattleMessage(
+      `${message}\n敵の反撃！ ${enemyDamage}ダメージ！`
+    );
+    setTurn(previous => previous + 1);
+  };
+
   const Button = ({ label, onPress, gold = false }) => (
     <TouchableOpacity
       onPress={onPress}
@@ -56,9 +131,7 @@ export default function App() {
 
       <View style={styles.topGlow} />
 
-      <ScrollView
-        contentContainerStyle={styles.content}
-      >
+      <ScrollView contentContainerStyle={styles.content}>
         {page === 'title' && (
           <View style={styles.titleScreen}>
             <Text style={styles.titleSymbol}>⚔️</Text>
@@ -121,6 +194,7 @@ export default function App() {
                 <Text style={styles.sectionLabel}>
                   対戦モード
                 </Text>
+
                 <View style={styles.modeRow}>
                   {['ソロ', 'デュオ', 'トリオ', '1対1'].map(
                     item => (
@@ -150,7 +224,7 @@ export default function App() {
 
               <TouchableOpacity
                 style={styles.deployButton}
-                onPress={() => setPage('battle')}
+                onPress={startBattle}
               >
                 <Text style={styles.deployText}>
                   ⚔️ 出 陣
@@ -196,16 +270,85 @@ export default function App() {
 
         {page === 'battle' && (
           <View style={styles.panel}>
-            <Heading>⚔️ 出陣</Heading>
+            <Heading>⚔️ ソロ対戦</Heading>
+
             <Text style={styles.description}>
               選択モード：{mode}
             </Text>
-            <Text style={styles.description}>
-              対戦システムは開発予定
+
+            {mode !== 'ソロ' && (
+              <Text style={styles.warning}>
+                現在はソロ練習戦です。
+                オンライン対戦は開発予定。
+              </Text>
+            )}
+
+            <Text style={styles.turnText}>
+              第{turn}ターン
             </Text>
-            <Text style={styles.description}>
-              ソロ・デュオ・トリオ・1対1
+
+            <Text style={styles.battleFighter}>
+              🏯 敵武将
             </Text>
+            <Text style={styles.hpText}>
+              HP {enemyHp} / 100
+            </Text>
+            <View style={styles.hpTrack}>
+              <View
+                style={[
+                  styles.enemyHpFill,
+                  { width: `${enemyHp}%` }
+                ]}
+              />
+            </View>
+
+            <Text style={styles.battleVs}>
+              ⚔️ VS ⚔️
+            </Text>
+
+            <Text style={styles.battleFighter}>
+              🛡️ 自分
+            </Text>
+            <Text style={styles.hpText}>
+              HP {playerHp} / 100
+            </Text>
+            <View style={styles.hpTrack}>
+              <View
+                style={[
+                  styles.playerHpFill,
+                  { width: `${playerHp}%` }
+                ]}
+              />
+            </View>
+
+            <Text style={styles.battleLog}>
+              {battleMessage}
+            </Text>
+
+            {!battleOver ? (
+              <View style={styles.battleActions}>
+                <Button
+                  label="⚔️ 攻撃"
+                  gold
+                  onPress={() => battleAction('attack')}
+                />
+                <Button
+                  label="🛡️ 防御"
+                  onPress={() => battleAction('guard')}
+                />
+                <Button
+                  label="💚 回復"
+                  onPress={() => battleAction('heal')}
+                />
+              </View>
+            ) : (
+              <Button
+                label="⚔️ もう一度戦う"
+                gold
+                onPress={startBattle}
+              />
+            )}
+
             <Button
               label="ホームに戻る"
               onPress={() => setPage('home')}
@@ -590,5 +733,57 @@ const styles = StyleSheet.create({
   },
   goldButtonText: {
     color: '#271A10'
+  },
+
+  // Ver.0.4 追加スタイル
+  turnText: {
+    color: GOLD,
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 12
+  },
+  battleFighter: {
+    color: CREAM,
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginTop: 8
+  },
+  hpText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    marginTop: 6,
+    marginBottom: 5
+  },
+  hpTrack: {
+    height: 15,
+    width: '100%',
+    borderRadius: 9,
+    backgroundColor: '#4A3030',
+    overflow: 'hidden'
+  },
+  enemyHpFill: {
+    height: '100%',
+    backgroundColor: '#E57865'
+  },
+  playerHpFill: {
+    height: '100%',
+    backgroundColor: '#74C78A'
+  },
+  battleVs: {
+    color: GOLD,
+    fontSize: 25,
+    marginVertical: 15
+  },
+  battleLog: {
+    color: CREAM,
+    fontSize: 15,
+    textAlign: 'center',
+    marginTop: 20,
+    marginBottom: 10,
+    minHeight: 45
+  },
+  battleActions: {
+    alignItems: 'center',
+    width: '100%'
   }
 });
